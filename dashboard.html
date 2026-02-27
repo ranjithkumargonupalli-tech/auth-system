@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | SecureAuth</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-shield-alt"></i> SecureAuth
+        </div>
+        <ul class="nav-links">
+            <li><a href="dashboard.html" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="profile.html"><i class="fas fa-user"></i> Profile</a></li>
+            <li id="adminLink" class="hidden"><a href="admin.html"><i class="fas fa-cog"></i> Admin</a></li>
+            <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </nav>
+  
+
+  <div class="dashboard-content">
+    <div class="welcome-card glass">
+        <h2 id="welcomeMessage">Loading...</h2>
+        <p>Welcome to your secure dashboard. Only authenticated users can see this page.</p>
+        
+        <!-- Add this link/button -->
+        <div style="margin-top: 30px;">
+            <a href="https://ranjithkumargonupalli-tech.github.io/nova-tools-combined/" target="_blank" class="btn primary">
+                <i class="fas fa-external-link-alt"></i> NOVA PORTEL
+            </a>
+        </div>
+    </div>
+</div>
+
+
+    <script src="script.js"></script>
+</body>
+</html>
