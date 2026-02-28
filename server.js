@@ -4,12 +4,22 @@ const bcrypt = require('bcrypt');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const cors = require('cors'); // Added CORS
 const { sql, pool, poolConnect } = require('./database');
 const { sendWelcomeEmail, sendPasswordChangeNotification, sendAdminAlert, sendOtpEmail } = require('./utils/emailService');
 
 const app = express();
 
+// ==================== CORS CONFIGURATION ====================
+// Allow requests from your GitHub Pages frontend
+app.use(cors({
+    origin: 'https://ranjithkumargonupalli-tech.github.io', // Replace with your actual frontend domain
+    credentials: true // Allow cookies/session
+}));
+
 // ==================== MULTER CONFIG (Avatar Upload) ====================
+// Note: On Render, uploaded files are temporary and may be lost on restart.
+// For production, consider using cloud storage (e.g., Cloudinary, AWS S3).
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dir = './public/uploads/avatars';
@@ -56,11 +66,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+// Session configuration – secret from environment variable
 app.use(session({
-    secret: 'super-secret-key-change-this',
+    secret: process.env.SESSION_SECRET || 'super-secret-key-change-this', // Use env var in production
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 }
+    cookie: { 
+        maxAge: 1000 * 60 * 60,
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS)
+        sameSite: 'lax'
+    }
 }));
 
 // ==================== AUTH MIDDLEWARE ====================
@@ -370,8 +385,8 @@ app.delete('/admin/users/:id', isAdmin, async (req, res) => {
     }
 });
 
-// Start server
-const PORT = 3000;
+// ==================== START SERVER ====================
+const PORT = process.env.PORT || 3000; // Use Render's port
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
