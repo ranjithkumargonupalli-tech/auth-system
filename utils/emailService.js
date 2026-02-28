@@ -1,6 +1,9 @@
 const nodemailer = require('nodemailer');
 
 // Create a transporter with IPv4 fix and environment variables
+const nodemailer = require('nodemailer');
+
+// Create a transporter with IPv4 fix and environment variables
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
@@ -26,6 +29,9 @@ transporter.verify((error, success) => {
     }
 });
 
+// ... (rest of the functions as before)
+// ... sendWelcomeEmail, sendPasswordChangeNotification, sendAdminAlert, sendOtpEmail
+// (keep them exactly as in my previous message)
 // 1. Send welcome email
 const sendWelcomeEmail = async (userEmail, username) => {
     try {
