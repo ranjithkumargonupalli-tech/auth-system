@@ -1,5 +1,5 @@
 // ==================== LOAD ENVIRONMENT VARIABLES FIRST ====================
-require('dotenv').config();  // ⬅️ MUST be at the very top
+require('dotenv').config();
 
 const express = require('express');
 const session = require('express-session');
@@ -8,13 +8,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
-const { sql, pool, poolConnect } = require('./database');
+const db = require('./database'); // PostgreSQL connection pool
 const { sendWelcomeEmail, sendPasswordChangeNotification, sendAdminAlert, sendOtpEmail } = require('./utils/emailService');
 
 const app = express();
 
 // ==================== CORS CONFIGURATION ====================
-// Allow requests from your GitHub Pages frontend
 app.use(cors({
     origin: 'https://ranjithkumargonupalli-tech.github.io',
     credentials: true
@@ -67,12 +66,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// Session configuration – secret from environment variable
+// Session configuration
 app.use(session({
     secret: process.env.SESSION_SECRET || 'super-secret-key-change-this',
     resave: false,
     saveUninitialized: false,
-    cookie: { 
+    cookie: {
         maxAge: 1000 * 60 * 60,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax'
@@ -90,11 +89,8 @@ const isAuthenticated = (req, res, next) => {
 const isAdmin = async (req, res, next) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Not authenticated' });
     try {
-        await poolConnect;
-        const result = await pool.request()
-            .input('id', sql.Int, req.session.userId)
-            .query('SELECT role FROM users WHERE id = @id');
-        if (result.recordset.length === 0 || result.recordset[0].role !== 'admin') {
+        const result = await db.query('SELECT role FROM users WHERE id = $1', [req.session.userId]);
+        if (result.rows.length === 0 || result.rows[0].role !== 'admin') {
             return res.status(403).json({ error: 'Access denied' });
         }
         next();
@@ -111,11 +107,8 @@ app.post('/send-otp', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).send('Email is required');
     try {
-        await poolConnect;
-        const check = await pool.request()
-            .input('email', sql.NVarChar, email)
-            .query('SELECT id FROM users WHERE email = @email');
-        if (check.recordset.length > 0) {
+        const check = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+        if (check.rows.length > 0) {
             return res.status(409).send('Email already registered');
         }
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -150,20 +143,17 @@ app.post('/register', async (req, res) => {
         return res.status(400).send('Invalid OTP');
     }
     try {
-        await poolConnect;
-        const check = await pool.request()
-            .input('email', sql.NVarChar, email)
-            .query('SELECT id FROM users WHERE email = @email');
-        if (check.recordset.length > 0) {
+        // Double-check email not already registered
+        const check = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+        if (check.rows.length > 0) {
             return res.status(409).send('Email already registered');
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const result = await pool.request()
-            .input('username', sql.NVarChar, username)
-            .input('email', sql.NVarChar, email)
-            .input('password', sql.NVarChar, hashedPassword)
-            .query('INSERT INTO users (username, email, password) OUTPUT INSERTED.id VALUES (@username, @email, @password)');
-        const newUserId = result.recordset[0].id;
+        const result = await db.query(
+            'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id',
+            [username, email, hashedPassword]
+        );
+        const newUserId = result.rows[0].id;
         otpStore.delete(email);
         req.session.userId = newUserId;
         req.session.username = username;
@@ -182,12 +172,9 @@ app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).send('Username and password required');
     try {
-        await poolConnect;
-        const result = await pool.request()
-            .input('username', sql.NVarChar, username)
-            .query('SELECT * FROM users WHERE username = @username');
-        if (result.recordset.length === 0) return res.status(401).send('Invalid username or password');
-        const user = result.recordset[0];
+        const result = await db.query('SELECT * FROM users WHERE username = $1', [username]);
+        if (result.rows.length === 0) return res.status(401).send('Invalid username or password');
+        const user = result.rows[0];
         const match = await bcrypt.compare(password, user.password);
         if (!match) return res.status(401).send('Invalid username or password');
         req.session.userId = user.id;
@@ -220,31 +207,29 @@ app.get('/check-session', (req, res) => {
 // Get current user profile (basic)
 app.get('/profile', isAuthenticated, async (req, res) => {
     try {
-        await poolConnect;
-        const result = await pool.request()
-            .input('id', sql.Int, req.session.userId)
-            .query('SELECT id, username, email, role FROM users WHERE id = @id');
-        res.json(result.recordset[0]);
+        const result = await db.query(
+            'SELECT id, username, email, role FROM users WHERE id = $1',
+            [req.session.userId]
+        );
+        res.json(result.rows[0]);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
     }
 });
 
-// Get full profile (with all new fields)
+// Get full profile
 app.get('/profile/full', isAuthenticated, async (req, res) => {
     try {
-        await poolConnect;
-        const result = await pool.request()
-            .input('id', sql.Int, req.session.userId)
-            .query(`
-                SELECT id, username, display_name, email, bio, phone,
-                       github, twitter, linkedin, email_verified,
-                       two_factor_enabled, created_at, updated_at,
-                       avatar_url
-                FROM users WHERE id = @id
-            `);
-        res.json(result.recordset[0]);
+        const result = await db.query(
+            `SELECT id, username, display_name, email, bio, phone,
+                    github, twitter, linkedin, email_verified,
+                    two_factor_enabled, created_at, updated_at,
+                    avatar_url
+             FROM users WHERE id = $1`,
+            [req.session.userId]
+        );
+        res.json(result.rows[0]);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -255,26 +240,18 @@ app.get('/profile/full', isAuthenticated, async (req, res) => {
 app.put('/profile/update', isAuthenticated, async (req, res) => {
     const { display_name, bio, phone, github, twitter, linkedin } = req.body;
     try {
-        await poolConnect;
-        await pool.request()
-            .input('id', sql.Int, req.session.userId)
-            .input('display_name', sql.NVarChar, display_name || null)
-            .input('bio', sql.NVarChar, bio || null)
-            .input('phone', sql.NVarChar, phone || null)
-            .input('github', sql.NVarChar, github || null)
-            .input('twitter', sql.NVarChar, twitter || null)
-            .input('linkedin', sql.NVarChar, linkedin || null)
-            .query(`
-                UPDATE users SET
-                    display_name = @display_name,
-                    bio = @bio,
-                    phone = @phone,
-                    github = @github,
-                    twitter = @twitter,
-                    linkedin = @linkedin,
-                    updated_at = GETDATE()
-                WHERE id = @id
-            `);
+        await db.query(
+            `UPDATE users SET
+                display_name = $1,
+                bio = $2,
+                phone = $3,
+                github = $4,
+                twitter = $5,
+                linkedin = $6,
+                updated_at = CURRENT_TIMESTAMP
+             WHERE id = $7`,
+            [display_name, bio, phone, github, twitter, linkedin, req.session.userId]
+        );
         res.send('Profile updated successfully');
     } catch (err) {
         console.error(err);
@@ -289,11 +266,7 @@ app.post('/profile/avatar', isAuthenticated, upload.single('avatar'), async (req
     }
     try {
         const avatarUrl = '/uploads/avatars/' + req.file.filename;
-        await poolConnect;
-        await pool.request()
-            .input('id', sql.Int, req.session.userId)
-            .input('avatar_url', sql.NVarChar, avatarUrl)
-            .query('UPDATE users SET avatar_url = @avatar_url WHERE id = @id');
+        await db.query('UPDATE users SET avatar_url = $1 WHERE id = $2', [avatarUrl, req.session.userId]);
         res.send('Avatar uploaded successfully');
     } catch (err) {
         console.error(err);
@@ -306,18 +279,12 @@ app.put('/profile/password', isAuthenticated, async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) return res.status(400).send('All fields required');
     try {
-        await poolConnect;
-        const result = await pool.request()
-            .input('id', sql.Int, req.session.userId)
-            .query('SELECT password FROM users WHERE id = @id');
-        const user = result.recordset[0];
+        const result = await db.query('SELECT password FROM users WHERE id = $1', [req.session.userId]);
+        const user = result.rows[0];
         const match = await bcrypt.compare(currentPassword, user.password);
         if (!match) return res.status(401).send('Current password incorrect');
         const hashedNew = await bcrypt.hash(newPassword, 10);
-        await pool.request()
-            .input('id', sql.Int, req.session.userId)
-            .input('newPassword', sql.NVarChar, hashedNew)
-            .query('UPDATE users SET password = @newPassword WHERE id = @id');
+        await db.query('UPDATE users SET password = $1 WHERE id = $2', [hashedNew, req.session.userId]);
         if (req.session.email) {
             sendPasswordChangeNotification(req.session.email, req.session.username)
                 .catch(err => console.error('Password change email failed:', err.message));
@@ -332,10 +299,10 @@ app.put('/profile/password', isAuthenticated, async (req, res) => {
 // Toggle two-factor (placeholder)
 app.post('/profile/toggle-2fa', isAuthenticated, async (req, res) => {
     try {
-        await poolConnect;
-        await pool.request()
-            .input('id', sql.Int, req.session.userId)
-            .query('UPDATE users SET two_factor_enabled = ~two_factor_enabled WHERE id = @id');
+        await db.query(
+            'UPDATE users SET two_factor_enabled = NOT two_factor_enabled WHERE id = $1',
+            [req.session.userId]
+        );
         res.send('2FA setting toggled');
     } catch (err) {
         console.error(err);
@@ -346,10 +313,7 @@ app.post('/profile/toggle-2fa', isAuthenticated, async (req, res) => {
 // Delete own account
 app.delete('/profile/delete', isAuthenticated, async (req, res) => {
     try {
-        await poolConnect;
-        await pool.request()
-            .input('id', sql.Int, req.session.userId)
-            .query('DELETE FROM users WHERE id = @id');
+        await db.query('DELETE FROM users WHERE id = $1', [req.session.userId]);
         req.session.destroy();
         res.send('Account deleted');
     } catch (err) {
@@ -361,10 +325,10 @@ app.delete('/profile/delete', isAuthenticated, async (req, res) => {
 // ==================== ADMIN ROUTES ====================
 app.get('/admin/users', isAdmin, async (req, res) => {
     try {
-        await poolConnect;
-        const result = await pool.request()
-            .query('SELECT id, username, email, role, created_at, password FROM users ORDER BY id');
-        res.json(result.recordset);
+        const result = await db.query(
+            'SELECT id, username, email, role, created_at, password FROM users ORDER BY id'
+        );
+        res.json(result.rows);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -375,10 +339,7 @@ app.delete('/admin/users/:id', isAdmin, async (req, res) => {
     const userId = req.params.id;
     if (userId == req.session.userId) return res.status(400).send('Cannot delete yourself');
     try {
-        await poolConnect;
-        await pool.request()
-            .input('id', sql.Int, userId)
-            .query('DELETE FROM users WHERE id = @id');
+        await db.query('DELETE FROM users WHERE id = $1', [userId]);
         res.send('User deleted');
     } catch (err) {
         console.error(err);
