@@ -1,3 +1,7 @@
+// ==================== BACKEND API BASE URL ====================
+// Replace this with your actual Render backend URL
+const API_BASE = 'https://your-backend-url.onrender.com'; // ⬅️ UPDATE THIS!
+
 // ==================== UTILITIES ====================
 function showMessage(elementId, message, isSuccess = true) {
     const el = document.getElementById(elementId);
@@ -28,11 +32,8 @@ document.addEventListener('click', function(e) {
         const passwordInput = document.getElementById(targetId);
         
         if (passwordInput) {
-            // Toggle input type
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
-            
-            // Toggle icon class
             icon.classList.toggle('fa-eye');
             icon.classList.toggle('fa-eye-slash');
         }
@@ -40,7 +41,6 @@ document.addEventListener('click', function(e) {
 });
 
 // ==================== TOGGLE FORMS (Index page) ====================
-// Show OTP request card (from login)
 if (document.getElementById('showOtpRequest')) {
     document.getElementById('showOtpRequest').addEventListener('click', (e) => {
         e.preventDefault();
@@ -50,7 +50,6 @@ if (document.getElementById('showOtpRequest')) {
     });
 }
 
-// Back to login from OTP request
 if (document.getElementById('backToLoginFromOtp')) {
     document.getElementById('backToLoginFromOtp').addEventListener('click', (e) => {
         e.preventDefault();
@@ -60,7 +59,6 @@ if (document.getElementById('backToLoginFromOtp')) {
     });
 }
 
-// From register card back to OTP request (to change email)
 if (document.getElementById('backToOtpRequest')) {
     document.getElementById('backToOtpRequest').addEventListener('click', (e) => {
         e.preventDefault();
@@ -88,7 +86,6 @@ if (document.getElementById('showLogin')) {
 }
 
 // ==================== LOGIN ====================
-// ==================== LOGIN (Enhanced Validation) ====================
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
@@ -98,7 +95,6 @@ if (loginForm) {
         const username = document.getElementById('loginUsername').value.trim();
         const password = document.getElementById('loginPassword').value;
 
-        // Client-side validation
         if (!username) {
             showMessage('loginMessage', 'Username is required', false);
             return;
@@ -109,9 +105,10 @@ if (loginForm) {
         }
 
         try {
-            const res = await fetch('/login', {
+            const res = await fetch(API_BASE + '/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ username, password })
             });
             const text = await res.text();
@@ -119,7 +116,6 @@ if (loginForm) {
                 showMessage('loginMessage', 'Login successful! Redirecting...', true);
                 setTimeout(() => window.location.href = '/dashboard.html', 1000);
             } else {
-                // Show server error message (e.g., "Invalid username or password")
                 showMessage('loginMessage', text, false);
             }
         } catch (err) {
@@ -127,6 +123,7 @@ if (loginForm) {
         }
     });
 }
+
 // ==================== OTP REQUEST ====================
 const otpRequestForm = document.getElementById('otpRequestForm');
 if (otpRequestForm) {
@@ -137,15 +134,15 @@ if (otpRequestForm) {
         const email = document.getElementById('otpEmail').value;
 
         try {
-            const res = await fetch('/send-otp', {
+            const res = await fetch(API_BASE + '/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ email })
             });
             const text = await res.text();
             if (res.ok) {
                 showMessage('otpRequestMessage', 'OTP sent! Check your email.', true);
-                // Show registration card and pre-fill email
                 document.getElementById('otpRequestCard').classList.add('hidden');
                 document.getElementById('registerCard').classList.remove('hidden');
                 document.getElementById('regEmail').value = email;
@@ -168,7 +165,7 @@ if (registerForm) {
         const username = document.getElementById('regUsername').value;
         const password = document.getElementById('regPassword').value;
         const otp = document.getElementById('regOtp').value;
-        const email = document.getElementById('regEmail').value; // hidden field
+        const email = document.getElementById('regEmail').value;
 
         if (!email) {
             showMessage('registerMessage', 'Email missing. Please request OTP again.', false);
@@ -176,9 +173,10 @@ if (registerForm) {
         }
 
         try {
-            const res = await fetch('/register', {
+            const res = await fetch(API_BASE + '/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ username, email, password, otp })
             });
             const text = await res.text();
@@ -197,7 +195,9 @@ if (registerForm) {
 // ==================== SESSION & NAVIGATION ====================
 async function checkSession() {
     try {
-        const res = await fetch('/check-session');
+        const res = await fetch(API_BASE + '/check-session', {
+            credentials: 'include'
+        });
         const data = await res.json();
         if (data.loggedIn) {
             fetchUserRole();
@@ -216,7 +216,9 @@ async function checkSession() {
 
 async function fetchUserRole() {
     try {
-        const res = await fetch('/profile');
+        const res = await fetch(API_BASE + '/profile', {
+            credentials: 'include'
+        });
         if (res.ok) {
             const user = await res.json();
             if (user.role === 'admin') {
@@ -254,8 +256,9 @@ if (window.location.pathname.includes('profile.html')) {
             const formData = new FormData();
             formData.append('avatar', file);
             try {
-                const res = await fetch('/profile/avatar', {
+                const res = await fetch(API_BASE + '/profile/avatar', {
                     method: 'POST',
+                    credentials: 'include',
                     body: formData
                 });
                 const text = await res.text();
@@ -276,9 +279,10 @@ if (window.location.pathname.includes('profile.html')) {
             const display_name = document.getElementById('displayName').value;
             const bio = document.getElementById('bio').value;
             const phone = document.getElementById('phone').value;
-            const res = await fetch('/profile/update', {
+            const res = await fetch(API_BASE + '/profile/update', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ display_name, bio, phone })
             });
             const text = await res.text();
@@ -292,9 +296,10 @@ if (window.location.pathname.includes('profile.html')) {
             const github = document.getElementById('github').value;
             const twitter = document.getElementById('twitter').value;
             const linkedin = document.getElementById('linkedin').value;
-            const res = await fetch('/profile/update', {
+            const res = await fetch(API_BASE + '/profile/update', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ github, twitter, linkedin })
             });
             const text = await res.text();
@@ -307,9 +312,10 @@ if (window.location.pathname.includes('profile.html')) {
             e.preventDefault();
             const currentPassword = document.getElementById('currentPassword').value;
             const newPassword = document.getElementById('newPassword').value;
-            const res = await fetch('/profile/password', {
+            const res = await fetch(API_BASE + '/profile/password', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ currentPassword, newPassword })
             });
             const text = await res.text();
@@ -322,7 +328,10 @@ if (window.location.pathname.includes('profile.html')) {
 
         // Toggle 2FA
         document.getElementById('toggle2faBtn').addEventListener('click', async () => {
-            const res = await fetch('/profile/toggle-2fa', { method: 'POST' });
+            const res = await fetch(API_BASE + '/profile/toggle-2fa', {
+                method: 'POST',
+                credentials: 'include'
+            });
             const text = await res.text();
             showMessage('2faMessage', text, res.ok);
             loadProfile();
@@ -331,7 +340,10 @@ if (window.location.pathname.includes('profile.html')) {
         // Delete account
         document.getElementById('deleteAccountBtn').addEventListener('click', async () => {
             if (!confirm('Are you absolutely sure? This will permanently delete your account and all data.')) return;
-            const res = await fetch('/profile/delete', { method: 'DELETE' });
+            const res = await fetch(API_BASE + '/profile/delete', {
+                method: 'DELETE',
+                credentials: 'include'
+            });
             const text = await res.text();
             if (res.ok) {
                 alert('Account deleted. You will be logged out.');
@@ -353,10 +365,11 @@ if (window.location.pathname.includes('profile.html')) {
     })();
 }
 
-// Load profile data (used in profile page)
 async function loadProfile() {
     try {
-        const res = await fetch('/profile/full');
+        const res = await fetch(API_BASE + '/profile/full', {
+            credentials: 'include'
+        });
         const user = await res.json();
         document.getElementById('profileUsername').textContent = user.username;
         document.getElementById('profileEmail').value = user.email || '';
@@ -391,14 +404,15 @@ async function loadProfile() {
 }
 
 // ==================== ADMIN PAGE ====================
-// ==================== ADMIN PAGE ====================
 if (window.location.pathname.includes('admin.html')) {
     (async () => {
         const session = await checkSession();
         if (!session) return;
 
         try {
-            const res = await fetch('/admin/users');
+            const res = await fetch(API_BASE + '/admin/users', {
+                credentials: 'include'
+            });
             if (!res.ok) {
                 if (res.status === 403) {
                     alert('Access denied. Admins only.');
@@ -429,11 +443,15 @@ if (window.location.pathname.includes('admin.html')) {
         }
     })();
 }
+
 // Delete user function (global for onclick)
 window.deleteUser = async (userId) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     try {
-        const res = await fetch(`/admin/users/${userId}`, { method: 'DELETE' });
+        const res = await fetch(API_BASE + `/admin/users/${userId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
         const text = await res.text();
         alert(text);
         if (res.ok) location.reload();
@@ -446,7 +464,10 @@ window.deleteUser = async (userId) => {
 document.addEventListener('click', async (e) => {
     if (e.target.id === 'logoutBtn' || e.target.closest('#logoutBtn')) {
         e.preventDefault();
-        await fetch('/logout', { method: 'POST' });
+        await fetch(API_BASE + '/logout', {
+            method: 'POST',
+            credentials: 'include'
+        });
         window.location.href = '/';
     }
 });
