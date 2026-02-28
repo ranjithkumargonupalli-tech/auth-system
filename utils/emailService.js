@@ -1,22 +1,32 @@
 const nodemailer = require('nodemailer');
 
 // Create a transporter using environment variables and force IPv4
+const nodemailer = require('nodemailer');
+const dns = require('dns');
+const { promisify } = require('util');
+const lookup = promisify(dns.lookup);
+
+// Create a transporter with custom lookup to force IPv4
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false,                // use STARTTLS
+    secure: false, // use STARTTLS
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    requireTLS: true,              // force TLS
+    requireTLS: true,
     tls: {
-        rejectUnauthorized: false  // helpful in some cloud environments
+        rejectUnauthorized: false
     },
-    family: 4,                      // force IPv4
-    connectionTimeout: 10000        // 10 seconds timeout
+    connectionTimeout: 10000,
+    // Custom lookup function: always resolve to IPv4
+    lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, callback);
+    }
 });
-// Verify the connection (optional, but good for debugging)
+
+// Verify the connection (logs success or error)
 transporter.verify((error, success) => {
     if (error) {
         console.error('Email service error:', error);
@@ -24,6 +34,9 @@ transporter.verify((error, success) => {
         console.log('Email server is ready to send messages');
     }
 });
+
+// ... (rest of your email functions remain exactly the same)
+// ... sendWelcomeEmail, sendPasswordChangeNotification, sendAdminAlert, sendOtpEmail
 
 // 1. Send a welcome email to new users
 const sendWelcomeEmail = async (userEmail, username) => {
