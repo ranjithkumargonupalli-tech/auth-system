@@ -2,22 +2,20 @@ const nodemailer = require('nodemailer');
 
 // Create a transporter using environment variables and force IPv4
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,        // your Gmail address from env
-        pass: process.env.EMAIL_PASS         // your App Password from env
-    },
-    // Force IPv4 and avoid IPv6 issues on Render
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,                            // use SSL
-    family: 4,                                // use IPv4 only
-    tls: {
-        rejectUnauthorized: false             // optional, helps in some environments
+    port: 587,
+    secure: false,                // use STARTTLS
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     },
-    connectionTimeout: 10000                  // 10 seconds timeout
+    requireTLS: true,              // force TLS
+    tls: {
+        rejectUnauthorized: false  // helpful in some cloud environments
+    },
+    family: 4,                      // force IPv4
+    connectionTimeout: 10000        // 10 seconds timeout
 });
-
 // Verify the connection (optional, but good for debugging)
 transporter.verify((error, success) => {
     if (error) {
