@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile | SecureAuth</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-shield-alt"></i> SecureAuth
+        </div>
+        <ul class="nav-links">
+            <li><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="profile.html" class="active"><i class="fas fa-user"></i> Profile</a></li>
+            <li id="adminLink" class="hidden"><a href="admin.html"><i class="fas fa-cog"></i> Admin</a></li>
+            <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </nav>
+
+    <main class="profile-container">
+        <div class="profile-card glass">
+            <div class="profile-header">
+                <div class="avatar-section">
+                    <div class="avatar-wrapper">
+                        <img id="avatarPreview" src="https://via.placeholder.com/120" alt="Avatar">
+                        <label for="avatarUpload" class="avatar-upload-label">
+                            <i class="fas fa-camera"></i>
+                        </label>
+                        <input type="file" id="avatarUpload" accept="image/*" style="display: none;">
+                    </div>
+                    <h2 id="profileDisplayName">Loading...</h2>
+                    <p class="username">@<span id="profileUsername">...</span></p>
+                </div>
+                <div class="profile-badge">
+                    <span id="emailVerifiedBadge" class="badge verified"><i class="fas fa-check-circle"></i> Email Verified</span>
+                </div>
+            </div>
+
+            <div class="profile-tabs">
+                <button class="tab-btn active" data-tab="about"><i class="fas fa-info-circle"></i> About</button>
+                <button class="tab-btn" data-tab="social"><i class="fas fa-share-alt"></i> Social</button>
+                <button class="tab-btn" data-tab="security"><i class="fas fa-lock"></i> Security</button>
+            </div>
+
+            <!-- Tab 1: About -->
+            <div id="tab-about" class="tab-content active">
+                <form id="aboutForm">
+                    <div class="input-group">
+                        <i class="fas fa-tag"></i>
+                        <input type="text" id="displayName" placeholder="Display Name">
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="profileEmail" placeholder="Email" readonly disabled>
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-phone"></i>
+                        <input type="tel" id="phone" placeholder="Phone Number">
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-align-left"></i>
+                        <textarea id="bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+                    </div>
+                    <button type="submit" class="btn primary">Save Changes</button>
+                </form>
+                <div id="aboutMessage" class="message"></div>
+            </div>
+
+            <!-- Tab 2: Social -->
+            <div id="tab-social" class="tab-content">
+                <form id="socialForm">
+                    <div class="input-group">
+                        <i class="fab fa-github"></i>
+                        <input type="text" id="github" placeholder="GitHub Username">
+                    </div>
+                    <div class="input-group">
+                        <i class="fab fa-twitter"></i>
+                        <input type="text" id="twitter" placeholder="Twitter Handle">
+                    </div>
+                    <div class="input-group">
+                        <i class="fab fa-linkedin"></i>
+                        <input type="text" id="linkedin" placeholder="LinkedIn Profile URL">
+                    </div>
+                    <button type="submit" class="btn secondary">Update Social</button>
+                </form>
+                <div id="socialMessage" class="message"></div>
+            </div>
+
+            <!-- Tab 3: Security (with password toggles) -->
+            <div id="tab-security" class="tab-content">
+                <h3><i class="fas fa-key"></i> Change Password</h3>
+                <form id="changePasswordForm">
+                    <div class="input-group password-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="currentPassword" placeholder="Current Password" required>
+                        <i class="fas fa-eye toggle-password" data-target="currentPassword"></i>
+                    </div>
+                    <div class="input-group password-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="newPassword" placeholder="New Password" required>
+                        <i class="fas fa-eye toggle-password" data-target="newPassword"></i>
+                    </div>
+                    <button type="submit" class="btn secondary">Change Password</button>
+                </form>
+                <div id="passwordMessage" class="message"></div>
+
+                <hr>
+                <h3><i class="fas fa-shield-alt"></i> Two-Factor Authentication</h3>
+                <button id="toggle2faBtn" class="btn small">Enable 2FA</button>
+                <div id="2faMessage" class="message"></div>
+
+                <hr class="danger">
+                <h3 class="danger-text"><i class="fas fa-exclamation-triangle"></i> Danger Zone</h3>
+                <button id="deleteAccountBtn" class="btn small danger">Delete My Account</button>
+                <div id="deleteMessage" class="message"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

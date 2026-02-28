@@ -1,0 +1,8 @@
+node_modules/
+.env
+public/uploads/
+# Frontend
+nova-frontend/node_modules/
+nova-frontend/dist/
+nova-frontend/build/
+nova-frontend/.env
