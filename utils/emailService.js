@@ -4,21 +4,21 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: process.env.EMAIL_USER,        // your Gmail address from env
+        pass: process.env.EMAIL_PASS         // your App Password from env
     },
-    // Force IPv4 by specifying host and family
+    // Force IPv4 and avoid IPv6 issues on Render
     host: 'smtp.gmail.com',
     port: 465,
-    secure: true, // use SSL
-    family: 4,    // this makes it use IPv4 only
+    secure: true,                            // use SSL
+    family: 4,                                // use IPv4 only
     tls: {
-        rejectUnauthorized: false // optional, helps in some environments
+        rejectUnauthorized: false             // optional, helps in some environments
     },
-    connectionTimeout: 10000 // 10 seconds timeout
+    connectionTimeout: 10000                  // 10 seconds timeout
 });
 
-// Verify the connection (logs success or error)
+// Verify the connection (optional, but good for debugging)
 transporter.verify((error, success) => {
     if (error) {
         console.error('Email service error:', error);
