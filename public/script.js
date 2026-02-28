@@ -1,6 +1,6 @@
 // ==================== BACKEND API BASE URL ====================
 // Replace this with your actual Render backend URL
-const API_BASE = 'https://your-backend-url.onrender.com'; // ⬅️ UPDATE THIS!
+const API_BASE = 'https://auth-system-backend-wo4x.onrender.com'; // ⬅️ UPDATE THIS!
 
 // ==================== UTILITIES ====================
 function showMessage(elementId, message, isSuccess = true) {
