@@ -1,6 +1,6 @@
 // ==================== BACKEND API BASE URL ====================
-// Replace this with your actual Render backend URL
-const API_BASE = 'https://auth-system-backend-wo4x.onrender.com'; // ⬅️ UPDATE THIS!
+// Replace with your actual Render backend URL (no trailing slash)
+const API_BASE = 'https://auth-system-backend-wo4x.onrender.com'; // ⬅️ CHANGE THIS TO YOUR RENDER URL
 
 // ==================== UTILITIES ====================
 function showMessage(elementId, message, isSuccess = true) {
@@ -120,6 +120,7 @@ if (loginForm) {
             }
         } catch (err) {
             showMessage('loginMessage', 'Network error. Please try again.', false);
+            console.error('Login error:', err);
         }
     });
 }
@@ -151,6 +152,7 @@ if (otpRequestForm) {
             }
         } catch (err) {
             showMessage('otpRequestMessage', 'Network error', false);
+            console.error('OTP request error:', err);
         }
     });
 }
@@ -188,6 +190,7 @@ if (registerForm) {
             }
         } catch (err) {
             showMessage('registerMessage', 'Network error', false);
+            console.error('Register error:', err);
         }
     });
 }
@@ -198,6 +201,9 @@ async function checkSession() {
         const res = await fetch(API_BASE + '/check-session', {
             credentials: 'include'
         });
+        if (!res.ok) {
+            throw new Error('Session check failed');
+        }
         const data = await res.json();
         if (data.loggedIn) {
             fetchUserRole();
@@ -209,7 +215,11 @@ async function checkSession() {
             return null;
         }
     } catch (err) {
-        console.error(err);
+        console.error('Session check error:', err);
+        // If network error, maybe redirect to login
+        if (!window.location.pathname.includes('index.html') && window.location.pathname !== '/') {
+            window.location.href = '/';
+        }
         return null;
     }
 }
@@ -227,7 +237,7 @@ async function fetchUserRole() {
             localStorage.setItem('userRole', user.role);
         }
     } catch (err) {
-        console.error(err);
+        console.error('Fetch user role error:', err);
     }
 }
 
@@ -270,6 +280,7 @@ if (window.location.pathname.includes('profile.html')) {
                 }
             } catch (err) {
                 showMessage('aboutMessage', 'Upload failed', false);
+                console.error('Avatar upload error:', err);
             }
         });
 
@@ -279,15 +290,20 @@ if (window.location.pathname.includes('profile.html')) {
             const display_name = document.getElementById('displayName').value;
             const bio = document.getElementById('bio').value;
             const phone = document.getElementById('phone').value;
-            const res = await fetch(API_BASE + '/profile/update', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ display_name, bio, phone })
-            });
-            const text = await res.text();
-            showMessage('aboutMessage', text, res.ok);
-            if (res.ok) loadProfile();
+            try {
+                const res = await fetch(API_BASE + '/profile/update', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ display_name, bio, phone })
+                });
+                const text = await res.text();
+                showMessage('aboutMessage', text, res.ok);
+                if (res.ok) loadProfile();
+            } catch (err) {
+                showMessage('aboutMessage', 'Network error', false);
+                console.error('About update error:', err);
+            }
         });
 
         // Social form
@@ -296,15 +312,20 @@ if (window.location.pathname.includes('profile.html')) {
             const github = document.getElementById('github').value;
             const twitter = document.getElementById('twitter').value;
             const linkedin = document.getElementById('linkedin').value;
-            const res = await fetch(API_BASE + '/profile/update', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ github, twitter, linkedin })
-            });
-            const text = await res.text();
-            showMessage('socialMessage', text, res.ok);
-            if (res.ok) loadProfile();
+            try {
+                const res = await fetch(API_BASE + '/profile/update', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ github, twitter, linkedin })
+                });
+                const text = await res.text();
+                showMessage('socialMessage', text, res.ok);
+                if (res.ok) loadProfile();
+            } catch (err) {
+                showMessage('socialMessage', 'Network error', false);
+                console.error('Social update error:', err);
+            }
         });
 
         // Change password
@@ -312,44 +333,59 @@ if (window.location.pathname.includes('profile.html')) {
             e.preventDefault();
             const currentPassword = document.getElementById('currentPassword').value;
             const newPassword = document.getElementById('newPassword').value;
-            const res = await fetch(API_BASE + '/profile/password', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ currentPassword, newPassword })
-            });
-            const text = await res.text();
-            showMessage('passwordMessage', text, res.ok);
-            if (res.ok) {
-                document.getElementById('currentPassword').value = '';
-                document.getElementById('newPassword').value = '';
+            try {
+                const res = await fetch(API_BASE + '/profile/password', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                const text = await res.text();
+                showMessage('passwordMessage', text, res.ok);
+                if (res.ok) {
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                }
+            } catch (err) {
+                showMessage('passwordMessage', 'Network error', false);
+                console.error('Password change error:', err);
             }
         });
 
         // Toggle 2FA
         document.getElementById('toggle2faBtn').addEventListener('click', async () => {
-            const res = await fetch(API_BASE + '/profile/toggle-2fa', {
-                method: 'POST',
-                credentials: 'include'
-            });
-            const text = await res.text();
-            showMessage('2faMessage', text, res.ok);
-            loadProfile();
+            try {
+                const res = await fetch(API_BASE + '/profile/toggle-2fa', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const text = await res.text();
+                showMessage('2faMessage', text, res.ok);
+                loadProfile();
+            } catch (err) {
+                showMessage('2faMessage', 'Network error', false);
+                console.error('2FA toggle error:', err);
+            }
         });
 
         // Delete account
         document.getElementById('deleteAccountBtn').addEventListener('click', async () => {
             if (!confirm('Are you absolutely sure? This will permanently delete your account and all data.')) return;
-            const res = await fetch(API_BASE + '/profile/delete', {
-                method: 'DELETE',
-                credentials: 'include'
-            });
-            const text = await res.text();
-            if (res.ok) {
-                alert('Account deleted. You will be logged out.');
-                window.location.href = '/';
-            } else {
-                showMessage('deleteMessage', text, false);
+            try {
+                const res = await fetch(API_BASE + '/profile/delete', {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                const text = await res.text();
+                if (res.ok) {
+                    alert('Account deleted. You will be logged out.');
+                    window.location.href = '/';
+                } else {
+                    showMessage('deleteMessage', text, false);
+                }
+            } catch (err) {
+                showMessage('deleteMessage', 'Network error', false);
+                console.error('Delete account error:', err);
             }
         });
 
@@ -370,6 +406,7 @@ async function loadProfile() {
         const res = await fetch(API_BASE + '/profile/full', {
             credentials: 'include'
         });
+        if (!res.ok) throw new Error('Failed to load profile');
         const user = await res.json();
         document.getElementById('profileUsername').textContent = user.username;
         document.getElementById('profileEmail').value = user.email || '';
@@ -400,6 +437,7 @@ async function loadProfile() {
         twofaBtn.textContent = user.two_factor_enabled ? 'Disable 2FA' : 'Enable 2FA';
     } catch (err) {
         console.error('Error loading profile:', err);
+        showMessage('aboutMessage', 'Failed to load profile', false);
     }
 }
 
@@ -464,11 +502,16 @@ window.deleteUser = async (userId) => {
 document.addEventListener('click', async (e) => {
     if (e.target.id === 'logoutBtn' || e.target.closest('#logoutBtn')) {
         e.preventDefault();
-        await fetch(API_BASE + '/logout', {
-            method: 'POST',
-            credentials: 'include'
-        });
-        window.location.href = '/';
+        try {
+            await fetch(API_BASE + '/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            window.location.href = '/';
+        } catch (err) {
+            console.error('Logout error:', err);
+            window.location.href = '/'; // still try to redirect
+        }
     }
 });
 
