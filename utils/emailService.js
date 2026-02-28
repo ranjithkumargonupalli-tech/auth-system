@@ -1,15 +1,24 @@
 const nodemailer = require('nodemailer');
 
-// Create a transporter (the email sender)
+// Create a transporter using environment variables and force IPv4
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'magnanimus1257@gmail.com',        // your Gmail address
-        pass: 'tlzf vcnr ngkz jztk'               // your App Password
-    }
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    // Force IPv4 by specifying host and family
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // use SSL
+    family: 4,    // this makes it use IPv4 only
+    tls: {
+        rejectUnauthorized: false // optional, helps in some environments
+    },
+    connectionTimeout: 10000 // 10 seconds timeout
 });
 
-// Verify the connection (optional, but good for debugging)
+// Verify the connection (logs success or error)
 transporter.verify((error, success) => {
     if (error) {
         console.error('Email service error:', error);
@@ -22,7 +31,7 @@ transporter.verify((error, success) => {
 const sendWelcomeEmail = async (userEmail, username) => {
     try {
         const mailOptions = {
-            from: '"NOVA PORTAL" <magnanimus1257@gmail.com>', // corrected
+            from: `"NOVA PORTAL" <${process.env.EMAIL_USER}>`,
             to: userEmail,
             subject: 'Welcome to Our Platform! 🎉',
             html: `
@@ -47,7 +56,7 @@ const sendWelcomeEmail = async (userEmail, username) => {
 const sendPasswordChangeNotification = async (userEmail, username) => {
     try {
         const mailOptions = {
-            from: '"NOVA PORTAL" <magnanimus1257@gmail.com>', // corrected
+            from: `"NOVA PORTAL" <${process.env.EMAIL_USER}>`,
             to: userEmail,
             subject: 'Your Password Was Changed',
             html: `
@@ -73,8 +82,8 @@ const sendPasswordChangeNotification = async (userEmail, username) => {
 const sendAdminAlert = async (newUser) => {
     try {
         const mailOptions = {
-            from: '"System Alerts" <magnanimus1257@gmail.com>',
-            to: 'magnanimus1257@gmail.com',   // admin email (same as sender here)
+            from: `"System Alerts" <${process.env.EMAIL_USER}>`,
+            to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
             subject: '🔔 New User Registered',
             html: `
                 <h3>New user registered:</h3>
@@ -93,11 +102,11 @@ const sendAdminAlert = async (newUser) => {
     }
 };
 
-// 4. NEW: Send OTP email for verification
+// 4. Send OTP email for verification
 const sendOtpEmail = async (userEmail, otp) => {
     try {
         const mailOptions = {
-            from: '"NOVA PORTAL" <magnanimus1257@gmail.com>',
+            from: `"NOVA PORTAL" <${process.env.EMAIL_USER}>`,
             to: userEmail,
             subject: 'Your OTP for Registration',
             html: `
@@ -122,7 +131,7 @@ const sendOtpEmail = async (userEmail, otp) => {
     }
 };
 
-// Export all functions (including the new one)
+// Export all functions
 module.exports = {
     sendWelcomeEmail,
     sendPasswordChangeNotification,
